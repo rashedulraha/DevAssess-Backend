@@ -14,4 +14,36 @@ router.post(
   PaymentController.initiatePayment,
 );
 
+router.post(
+  '/webhook',
+  PaymentController.handleWebhook,
+);
+
+router.post(
+  '/ssl-success',
+  PaymentController.handleSslSuccess,
+);
+
+router.get(
+  '/ssl-success',
+  PaymentController.handleSslSuccess,
+);
+
+router.get(
+  '/test-checkout',
+  PaymentController.simulateTestCheckout,
+);
+
+router.get(
+  '/my',
+  auth(Role.RECRUITER),
+  PaymentController.getMyPayments,
+);
+
+router.get(
+  '/:id',
+  auth(Role.RECRUITER, Role.ADMIN),
+  PaymentController.getPaymentById,
+);
+
 export const PaymentRoutes = router;
