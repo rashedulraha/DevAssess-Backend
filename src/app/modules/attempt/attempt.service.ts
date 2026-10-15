@@ -3,8 +3,13 @@ import { AppError } from '../../errors/AppError';
 import { IAuthUser } from '../../interfaces';
 import { prisma } from '../../shared/prisma';
 import { redis } from '../../shared/redis';
+import { logAudit } from '../../shared/auditLogger';
 import { evaluateCodingSubmission, evaluateMcqSubmission } from './attempt.evaluator';
-import { IStartAttemptPayload, ISubmitProblemPayload } from './attempt.interface';
+import {
+  IAntiCheatEventPayload,
+  IStartAttemptPayload,
+  ISubmitProblemPayload,
+} from './attempt.interface';
 
 const sanitizeProblemForCandidate = (
   problem: Problem,
@@ -385,9 +390,92 @@ const finalizeAttempt = async (attemptId: string, user: IAuthUser) => {
   return result;
 };
 
+const logAntiCheatEvent = async (
+  attemptId: string,
+  user: IAuthUser,
+  payload: IAntiCheatEventPayload,
+) => {
+  const attempt = await prisma.assessmentAttempt.findUnique({
+    where: { id: attemptId },
+    include: { assessment: true },
+  });
+
+  if (!attempt) {
+    throw new AppError(404, 'Assessment attempt not found.');
+  }
+
+  if (attempt.candidateId !== user.userId) {
+    throw new AppError(403, 'Forbidden: You do not own this attempt.');
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const antiCheatLog = await tx.antiCheatLog.create({
+      data: {
+        attemptId,
+        eventType: payload.eventType,
+        metadata: payload.metadata ? JSON.parse(JSON.stringify(payload.metadata)) : undefined,
+      },
+    });
+
+    const isProctorViolation = ['TAB_SWITCH', 'WINDOW_BLUR', 'FULLSCREEN_EXIT'].includes(
+      payload.eventType,
+    );
+
+    let currentAttempt = attempt;
+    if (isProctorViolation) {
+      currentAttempt = await tx.assessmentAttempt.update({
+        where: { id: attemptId },
+        data: {
+          tabSwitchCount: { increment: 1 },
+        },
+        include: { assessment: true },
+      });
+    }
+
+    let isFlagged = currentAttempt.status === AttemptStatus.FLAGGED;
+    if (
+      currentAttempt.tabSwitchCount > currentAttempt.assessment.maxTabSwitches &&
+      currentAttempt.status !== AttemptStatus.FLAGGED
+    ) {
+      await tx.assessmentAttempt.update({
+        where: { id: attemptId },
+        data: { status: AttemptStatus.FLAGGED },
+      });
+
+      await logAudit({
+        actorId: user.userId,
+        action: 'ATTEMPT_FLAGGED',
+        entityType: 'AssessmentAttempt',
+        entityId: attemptId,
+        oldValue: { status: currentAttempt.status },
+        newValue: {
+          status: AttemptStatus.FLAGGED,
+          tabSwitchCount: currentAttempt.tabSwitchCount,
+          maxAllowed: currentAttempt.assessment.maxTabSwitches,
+          triggerEvent: payload.eventType,
+        },
+        tx,
+      });
+
+      isFlagged = true;
+    }
+
+    return {
+      logId: antiCheatLog.id,
+      eventType: antiCheatLog.eventType,
+      tabSwitchCount: currentAttempt.tabSwitchCount,
+      maxTabSwitches: currentAttempt.assessment.maxTabSwitches,
+      isFlagged,
+    };
+  });
+
+  return result;
+};
+
 export const AttemptService = {
   startAttempt,
   submitProblem,
   finalizeAttempt,
+  logAntiCheatEvent,
   sanitizeProblemForCandidate,
 };

@@ -27,4 +27,11 @@ router.post(
   AttemptController.finalizeAttempt,
 );
 
+router.post(
+  '/:id/anti-cheat',
+  auth(Role.CANDIDATE),
+  validateRequest(AttemptValidation.logAntiCheatValidationSchema),
+  AttemptController.logAntiCheatEvent,
+);
+
 export const AttemptRoutes = router;

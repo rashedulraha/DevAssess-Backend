@@ -45,8 +45,23 @@ const finalizeAttempt = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const logAntiCheatEvent = catchAsync(async (req: Request, res: Response) => {
+  const attemptId = req.params.id as string;
+  const user = req.user!;
+
+  const result = await AttemptService.logAntiCheatEvent(attemptId, user, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Anti-cheat telemetry recorded successfully',
+    data: result,
+  });
+});
+
 export const AttemptController = {
   startAttempt,
   submitProblem,
   finalizeAttempt,
+  logAntiCheatEvent,
 };

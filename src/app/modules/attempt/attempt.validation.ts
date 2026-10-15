@@ -18,7 +18,22 @@ const submitProblemValidationSchema = z.object({
   }),
 });
 
+const logAntiCheatValidationSchema = z.object({
+  body: z.object({
+    eventType: z.enum([
+      'TAB_SWITCH',
+      'WINDOW_BLUR',
+      'FULLSCREEN_EXIT',
+      'COPY_PASTE',
+    ], {
+      message: 'Invalid anti-cheat event type',
+    }),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  }),
+});
+
 export const AttemptValidation = {
   startAttemptValidationSchema,
   submitProblemValidationSchema,
+  logAntiCheatValidationSchema,
 };
