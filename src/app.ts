@@ -3,6 +3,9 @@ import cors from 'cors';
 import express, { Application, Request, Response } from 'express';
 import helmet from 'helmet';
 
+import { globalErrorHandler } from './app/middlewares/globalErrorHandler';
+import { notFound } from './app/middlewares/notFound';
+
 const app: Application = express();
 
 // Security and utility middlewares
@@ -41,5 +44,9 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
     },
   });
 });
+
+// Global error handler & 404 handler
+app.use(globalErrorHandler);
+app.use(notFound);
 
 export default app;
