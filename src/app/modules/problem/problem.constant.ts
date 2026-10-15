@@ -6,3 +6,5 @@ export const problemFilterableFields = [
 ];
 
 export const problemSearchableFields = ['title', 'description'];
+
+export const paginationFields = ['page', 'limit', 'sortBy', 'sortOrder'];

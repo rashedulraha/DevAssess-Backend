@@ -1,8 +1,16 @@
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { AppError } from '../../errors/AppError';
 import { IAuthUser } from '../../interfaces';
+import { calculatePagination } from '../../shared/paginationHelper';
 import { prisma } from '../../shared/prisma';
-import { ICreateProblemPayload, IUpdateProblemPayload } from './problem.interface';
+import { problemSearchableFields } from './problem.constant';
+import {
+  ICreateProblemPayload,
+  IPaginationOptions,
+  IProblemFilterRequest,
+  IProblemSearchQuery,
+  IUpdateProblemPayload,
+} from './problem.interface';
 
 const createProblem = async (user: IAuthUser, payload: ICreateProblemPayload) => {
   const company = await prisma.company.findUnique({
@@ -29,6 +37,167 @@ const createProblem = async (user: IAuthUser, payload: ICreateProblemPayload) =>
   });
 
   return problem;
+};
+
+const getAllProblems = async (
+  filters: IProblemFilterRequest,
+  paginationOptions: IPaginationOptions,
+  user: IAuthUser,
+) => {
+  const { searchTerm, tag, ...filterData } = filters;
+  const { page, limit, skip, sortBy, sortOrder } = calculatePagination(paginationOptions);
+
+  const andConditions: Prisma.ProblemWhereInput[] = [
+    { deletedAt: null },
+  ];
+
+  if (user.role === Role.RECRUITER) {
+    const company = await prisma.company.findUnique({
+      where: { ownerId: user.userId },
+    });
+    if (!company) {
+      throw new AppError(400, 'Company profile is required for recruiters.');
+    }
+    andConditions.push({ companyId: company.id });
+  }
+
+  if (searchTerm) {
+    andConditions.push({
+      OR: problemSearchableFields.map((field) => ({
+        [field]: {
+          contains: searchTerm,
+          mode: 'insensitive',
+        },
+      })),
+    });
+  }
+
+  if (tag) {
+    andConditions.push({
+      tags: {
+        has: tag,
+      },
+    });
+  }
+
+  if (Object.keys(filterData).length > 0) {
+    andConditions.push({
+      AND: Object.keys(filterData).map((key) => ({
+        [key]: {
+          equals: (filterData as Record<string, unknown>)[key],
+        },
+      })),
+    });
+  }
+
+  const whereConditions: Prisma.ProblemWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
+  const total = await prisma.problem.count({ where: whereConditions });
+  const result = await prisma.problem.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include: {
+      company: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logoUrl: true,
+        },
+      },
+    },
+  });
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+    data: result,
+  };
+};
+
+const searchProblems = async (
+  query: IProblemSearchQuery,
+  paginationOptions: IPaginationOptions,
+  user: IAuthUser,
+) => {
+  const { q, tag } = query;
+  const { page, limit, skip, sortBy, sortOrder } = calculatePagination(paginationOptions);
+
+  const andConditions: Prisma.ProblemWhereInput[] = [
+    { deletedAt: null },
+  ];
+
+  if (user.role === Role.RECRUITER) {
+    const company = await prisma.company.findUnique({
+      where: { ownerId: user.userId },
+    });
+    if (!company) {
+      throw new AppError(400, 'Company profile is required for recruiters.');
+    }
+    andConditions.push({ companyId: company.id });
+  }
+
+  if (q) {
+    andConditions.push({
+      OR: [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ],
+    });
+  }
+
+  if (tag) {
+    andConditions.push({
+      tags: {
+        has: tag,
+      },
+    });
+  }
+
+  const whereConditions: Prisma.ProblemWhereInput = { AND: andConditions };
+
+  const total = await prisma.problem.count({ where: whereConditions });
+  const result = await prisma.problem.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include: {
+      company: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logoUrl: true,
+        },
+      },
+    },
+  });
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+    data: result,
+  };
 };
 
 const getSingleProblem = async (id: string, user: IAuthUser) => {
@@ -150,6 +319,8 @@ const deleteProblem = async (id: string, user: IAuthUser) => {
 
 export const ProblemService = {
   createProblem,
+  getAllProblems,
+  searchProblems,
   getSingleProblem,
   updateProblem,
   deleteProblem,

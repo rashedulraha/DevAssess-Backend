@@ -19,6 +19,18 @@ export interface IProblemFilterRequest {
   tag?: string;
 }
 
+export interface IProblemSearchQuery {
+  q?: string;
+  tag?: string;
+}
+
+export interface IPaginationOptions {
+  page?: number | string;
+  limit?: number | string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 export interface ICreateProblemPayload {
   title: string;
   description: string;

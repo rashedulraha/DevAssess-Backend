@@ -15,6 +15,18 @@ router.post(
 );
 
 router.get(
+  '/',
+  auth(Role.RECRUITER, Role.ADMIN),
+  ProblemController.getAllProblems,
+);
+
+router.get(
+  '/search',
+  auth(Role.RECRUITER, Role.ADMIN),
+  ProblemController.searchProblems,
+);
+
+router.get(
   '/:id',
   auth(Role.RECRUITER, Role.ADMIN),
   ProblemController.getSingleProblem,
