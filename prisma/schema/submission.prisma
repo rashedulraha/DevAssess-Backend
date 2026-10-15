@@ -1,0 +1,23 @@
+model Submission {
+  id              String   @id @default(uuid())
+  attemptId       String
+  problemId       String
+  selectedOption  String?
+  writtenAnswer   String?
+  sourceCode      String?
+  language        String?
+  passedTestCases Int      @default(0)
+  totalTestCases  Int      @default(0)
+  awardedScore    Float    @default(0)
+  isAutoEvaluated Boolean  @default(false)
+  evaluatorId     String?
+  evaluatorNotes  String?
+  submittedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  attempt   AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  problem   Problem           @relation(fields: [problemId], references: [id])
+  evaluator User?             @relation("EvaluatedBy", fields: [evaluatorId], references: [id])
+
+  @@unique([attemptId, problemId])
+}

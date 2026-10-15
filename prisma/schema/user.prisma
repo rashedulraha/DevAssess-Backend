@@ -1,0 +1,30 @@
+enum Role {
+  CANDIDATE
+  RECRUITER
+  ADMIN
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String?
+  googleId     String?   @unique
+  fullName     String
+  role         Role      @default(CANDIDATE)
+  avatarUrl    String?
+  resumeUrl    String?
+  bio          String?
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  company     Company?
+  invitations CandidateInvitation[]
+  attempts    AssessmentAttempt[]
+  evaluations Submission[]          @relation("EvaluatedBy")
+  auditLogs   AuditLog[]
+
+  @@index([email])
+  @@index([role, isActive])
+}

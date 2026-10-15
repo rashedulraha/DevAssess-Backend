@@ -1,0 +1,35 @@
+enum ProblemType {
+  MCQ
+  WRITTEN
+  CODING
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model Problem {
+  id          String      @id @default(uuid())
+  companyId   String
+  title       String
+  description String
+  type        ProblemType
+  difficulty  Difficulty
+  tags        String[]
+  options     Json?
+  starterCode Json?
+  testCases   Json?
+  maxScore    Int         @default(10)
+  deletedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  company     Company             @relation(fields: [companyId], references: [id])
+  assessments AssessmentProblem[]
+  submissions Submission[]
+
+  @@index([companyId, type, difficulty])
+  @@index([deletedAt])
+}

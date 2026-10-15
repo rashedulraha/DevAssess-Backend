@@ -1,0 +1,26 @@
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+model CandidateInvitation {
+  id             String           @id @default(uuid())
+  assessmentId   String
+  candidateEmail String
+  candidateId    String?
+  inviteToken    String           @unique
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime
+  sentAt         DateTime         @default(now())
+  acceptedAt     DateTime?
+
+  assessment Assessment         @relation(fields: [assessmentId], references: [id])
+  candidate  User?              @relation(fields: [candidateId], references: [id])
+  attempt    AssessmentAttempt?
+
+  @@unique([assessmentId, candidateEmail])
+  @@index([inviteToken])
+  @@index([candidateEmail, status])
+}

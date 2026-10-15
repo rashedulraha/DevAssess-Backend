@@ -1,0 +1,45 @@
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  TIMED_OUT
+  EVALUATED
+  FLAGGED
+}
+
+model AssessmentAttempt {
+  id              String        @id @default(uuid())
+  invitationId    String        @unique
+  assessmentId    String
+  candidateId     String
+  status          AttemptStatus @default(IN_PROGRESS)
+  startedAt       DateTime      @default(now())
+  expiresAt       DateTime
+  submittedAt     DateTime?
+  evaluatedAt     DateTime?
+  totalScore      Float         @default(0)
+  percentageScore Float         @default(0)
+  isPassed        Boolean       @default(false)
+  tabSwitchCount  Int           @default(0)
+  ipAddress       String?
+
+  invitation    CandidateInvitation @relation(fields: [invitationId], references: [id])
+  assessment    Assessment          @relation(fields: [assessmentId], references: [id])
+  candidate     User                @relation(fields: [candidateId], references: [id])
+  submissions   Submission[]
+  antiCheatLogs AntiCheatLog[]
+
+  @@index([assessmentId, status])
+  @@index([candidateId])
+}
+
+model AntiCheatLog {
+  id        String   @id @default(uuid())
+  attemptId String
+  eventType String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  attempt AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId, eventType])
+}

@@ -1,0 +1,27 @@
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  companyId         String
+  provider          String
+  transactionId     String        @unique
+  gatewaySessionId  String?
+  amount            Float
+  currency          String        @default("BDT")
+  creditsPurchased  Int
+  status            PaymentStatus @default(PENDING)
+  rawWebhookPayload Json?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, status])
+  @@index([transactionId])
+}
