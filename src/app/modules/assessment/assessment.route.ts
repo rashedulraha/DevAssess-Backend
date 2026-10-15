@@ -4,6 +4,8 @@ import { auth } from '../../middlewares/auth';
 import { validateRequest } from '../../middlewares/validateRequest';
 import { AssessmentController } from './assessment.controller';
 import { AssessmentValidation } from './assessment.validation';
+import { InvitationController } from '../invitation/invitation.controller';
+import { InvitationValidation } from '../invitation/invitation.validation';
 
 const router = Router();
 
@@ -38,6 +40,19 @@ router.patch(
   auth(Role.RECRUITER, Role.ADMIN),
   validateRequest(AssessmentValidation.updateAssessmentStatusValidationSchema),
   AssessmentController.updateAssessmentStatus,
+);
+
+router.post(
+  '/:id/invite',
+  auth(Role.RECRUITER),
+  validateRequest(InvitationValidation.inviteCandidatesValidationSchema),
+  InvitationController.inviteCandidates,
+);
+
+router.get(
+  '/:id/invitations',
+  auth(Role.RECRUITER),
+  InvitationController.getAssessmentInvitations,
 );
 
 router.delete(
