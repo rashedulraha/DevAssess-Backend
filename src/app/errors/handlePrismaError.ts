@@ -8,49 +8,99 @@ export const handlePrismaError = (
   let message = 'Database Error';
   let errorMessages: IGenericErrorMessage[] = [];
 
-  if (error.code === 'P2002') {
-    const target = (error.meta?.target as string[]) || [];
-    const fields = target.join(', ');
-    message = fields
-      ? `A record with this ${fields} already exists`
-      : 'Unique constraint violation';
-    statusCode = 409;
-    errorMessages = [
-      {
-        field: fields,
-        path: fields,
-        message,
-      },
-    ];
-  } else if (error.code === 'P2025') {
-    message = (error.meta?.cause as string) || 'Record not found';
-    statusCode = 404;
-    errorMessages = [
-      {
-        field: '',
-        path: '',
-        message,
-      },
-    ];
-  } else if (error.code === 'P2003') {
-    message = 'Foreign key constraint violation';
-    statusCode = 400;
-    errorMessages = [
-      {
-        field: (error.meta?.field_name as string) || '',
-        path: (error.meta?.field_name as string) || '',
-        message,
-      },
-    ];
-  } else {
-    message = error.message;
-    errorMessages = [
-      {
-        field: '',
-        path: '',
-        message: error.message,
-      },
-    ];
+  switch (error.code) {
+    case 'P2002': {
+      const target = error.meta?.target;
+      let fieldName = 'record';
+      if (Array.isArray(target)) {
+        fieldName = target
+          .map((t) => String(t).replace(/^[A-Za-z0-9]+_/, '').replace(/_key$/, ''))
+          .join(', ');
+      } else if (typeof target === 'string') {
+        fieldName = target.replace(/^[A-Za-z0-9]+_/, '').replace(/_key$/, '');
+      }
+
+      message = `A record with this ${fieldName} already exists`;
+      statusCode = 409;
+      errorMessages = [
+        {
+          field: fieldName,
+          path: fieldName,
+          message,
+        },
+      ];
+      break;
+    }
+
+    case 'P2025': {
+      message = (error.meta?.cause as string) || 'The requested record was not found';
+      statusCode = 404;
+      errorMessages = [
+        {
+          field: 'id',
+          path: 'id',
+          message,
+        },
+      ];
+      break;
+    }
+
+    case 'P2003': {
+      const field =
+        (error.meta?.field_name as string) ||
+        (error.meta?.target as string) ||
+        'relation';
+      message = 'Referenced entity does not exist or relation constraint violated';
+      statusCode = 400;
+      errorMessages = [
+        {
+          field,
+          path: field,
+          message,
+        },
+      ];
+      break;
+    }
+
+    case 'P2000': {
+      const column = (error.meta?.column_name as string) || 'field';
+      message = `The provided value is too long for ${column}`;
+      statusCode = 400;
+      errorMessages = [
+        {
+          field: column,
+          path: column,
+          message,
+        },
+      ];
+      break;
+    }
+
+    case 'P2023': {
+      message = 'Inconsistent data or invalid identifier format provided';
+      statusCode = 400;
+      errorMessages = [
+        {
+          field: 'id',
+          path: 'id',
+          message,
+        },
+      ];
+      break;
+    }
+
+    default: {
+      message = error.message || 'An unexpected database error occurred';
+      statusCode = 400;
+      errorMessages = [
+        {
+          field: 'database',
+          path: 'database',
+          message,
+        },
+      ];
+      break;
+    }
   }
 
   return {

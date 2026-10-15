@@ -37,6 +37,24 @@ export const globalErrorHandler: ErrorRequestHandler = (
         message: error.message,
       },
     ];
+  } else if (error?.name === 'TokenExpiredError') {
+    statusCode = 401;
+    message = 'Access token has expired';
+    errors = [
+      {
+        field: 'token',
+        message: 'Access token has expired. Please refresh your session.',
+      },
+    ];
+  } else if (error?.name === 'JsonWebTokenError') {
+    statusCode = 401;
+    message = 'Invalid token';
+    errors = [
+      {
+        field: 'token',
+        message: 'Invalid or malformed authorization token provided.',
+      },
+    ];
   } else if (error instanceof AppError) {
     statusCode = error.statusCode;
     message = error.message;
