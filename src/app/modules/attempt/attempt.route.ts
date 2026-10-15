@@ -14,4 +14,17 @@ router.post(
   AttemptController.startAttempt,
 );
 
+router.post(
+  '/:id/submissions',
+  auth(Role.CANDIDATE),
+  validateRequest(AttemptValidation.submitProblemValidationSchema),
+  AttemptController.submitProblem,
+);
+
+router.post(
+  '/:id/finalize',
+  auth(Role.CANDIDATE),
+  AttemptController.finalizeAttempt,
+);
+
 export const AttemptRoutes = router;

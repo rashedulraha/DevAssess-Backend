@@ -3,7 +3,8 @@ import { AppError } from '../../errors/AppError';
 import { IAuthUser } from '../../interfaces';
 import { prisma } from '../../shared/prisma';
 import { redis } from '../../shared/redis';
-import { IStartAttemptPayload } from './attempt.interface';
+import { evaluateCodingSubmission, evaluateMcqSubmission } from './attempt.evaluator';
+import { IStartAttemptPayload, ISubmitProblemPayload } from './attempt.interface';
 
 const sanitizeProblemForCandidate = (
   problem: Problem,
@@ -205,7 +206,188 @@ const startAttempt = async (
   };
 };
 
+const submitProblem = async (
+  attemptId: string,
+  user: IAuthUser,
+  payload: ISubmitProblemPayload,
+) => {
+  const attempt = await prisma.assessmentAttempt.findUnique({
+    where: { id: attemptId },
+    include: {
+      assessment: {
+        include: {
+          problems: {
+            where: { problemId: payload.problemId },
+            include: { problem: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!attempt) {
+    throw new AppError(404, 'Assessment attempt not found.');
+  }
+
+  if (attempt.candidateId !== user.userId) {
+    throw new AppError(403, 'Forbidden: You do not own this attempt.');
+  }
+
+  if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+    throw new AppError(400, `Cannot submit answer. Attempt is already ${attempt.status.toLowerCase()}.`);
+  }
+
+  const gracePeriodMs = 30 * 1000;
+  if (Date.now() > attempt.expiresAt.getTime() + gracePeriodMs) {
+    await prisma.assessmentAttempt.update({
+      where: { id: attemptId },
+      data: { status: AttemptStatus.TIMED_OUT },
+    });
+    throw new AppError(400, 'Assessment time limit has expired (including grace period).');
+  }
+
+  const assessmentProblem = attempt.assessment.problems[0];
+  if (!assessmentProblem) {
+    throw new AppError(404, 'Problem is not associated with this assessment.');
+  }
+
+  const problem = assessmentProblem.problem;
+  const maxPoints = assessmentProblem.customPoints ?? problem.maxScore;
+
+  let awardedScore = 0;
+  let passedTestCases = 0;
+  let totalTestCases = 0;
+  let isAutoEvaluated = false;
+
+  if (problem.type === ProblemType.MCQ) {
+    if (payload.selectedOption) {
+      const evaluation = evaluateMcqSubmission(
+        payload.selectedOption,
+        (problem.options as Array<{ id: string; text: string; isCorrect?: boolean }>) || [],
+        maxPoints,
+      );
+      awardedScore = evaluation.awardedScore;
+      isAutoEvaluated = true;
+    }
+  } else if (problem.type === ProblemType.CODING) {
+    if (payload.sourceCode) {
+      const evaluation = evaluateCodingSubmission(
+        payload.sourceCode,
+        (problem.testCases as Array<{ input: string; expectedOutput: string; isHidden?: boolean }>) || [],
+        maxPoints,
+      );
+      awardedScore = evaluation.awardedScore;
+      passedTestCases = evaluation.passedTestCases;
+      totalTestCases = evaluation.totalTestCases;
+      isAutoEvaluated = true;
+    }
+  } else {
+    isAutoEvaluated = false;
+    awardedScore = 0;
+  }
+
+  const submission = await prisma.submission.upsert({
+    where: {
+      attemptId_problemId: {
+        attemptId,
+        problemId: payload.problemId,
+      },
+    },
+    update: {
+      selectedOption: payload.selectedOption,
+      writtenAnswer: payload.writtenAnswer,
+      sourceCode: payload.sourceCode,
+      language: payload.language,
+      passedTestCases,
+      totalTestCases,
+      awardedScore,
+      isAutoEvaluated,
+      submittedAt: new Date(),
+    },
+    create: {
+      attemptId,
+      problemId: payload.problemId,
+      selectedOption: payload.selectedOption,
+      writtenAnswer: payload.writtenAnswer,
+      sourceCode: payload.sourceCode,
+      language: payload.language,
+      passedTestCases,
+      totalTestCases,
+      awardedScore,
+      isAutoEvaluated,
+    },
+  });
+
+  return submission;
+};
+
+const finalizeAttempt = async (attemptId: string, user: IAuthUser) => {
+  const attempt = await prisma.assessmentAttempt.findUnique({
+    where: { id: attemptId },
+    include: {
+      assessment: {
+        include: {
+          problems: {
+            include: { problem: true },
+          },
+        },
+      },
+      submissions: true,
+    },
+  });
+
+  if (!attempt) {
+    throw new AppError(404, 'Assessment attempt not found.');
+  }
+
+  if (attempt.candidateId !== user.userId) {
+    throw new AppError(403, 'Forbidden: You do not own this attempt.');
+  }
+
+  if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+    throw new AppError(400, `Attempt is already ${attempt.status.toLowerCase()}.`);
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const totalScore = attempt.submissions.reduce((acc, s) => acc + s.awardedScore, 0);
+    const totalPoints = attempt.assessment.totalPoints || 100;
+    const percentageScore = totalPoints > 0 ? (totalScore / totalPoints) * 100 : 0;
+    const isPassed = percentageScore >= attempt.assessment.passingScore;
+
+    const hasWrittenProblems = attempt.assessment.problems.some(
+      (ap) => ap.problem.type === ProblemType.WRITTEN,
+    );
+
+    const finalStatus = hasWrittenProblems ? AttemptStatus.SUBMITTED : AttemptStatus.EVALUATED;
+    const now = new Date();
+
+    const updatedAttempt = await tx.assessmentAttempt.update({
+      where: { id: attemptId },
+      data: {
+        status: finalStatus,
+        totalScore,
+        percentageScore: Math.round(percentageScore * 100) / 100,
+        isPassed,
+        submittedAt: now,
+        evaluatedAt: finalStatus === AttemptStatus.EVALUATED ? now : null,
+      },
+    });
+
+    return updatedAttempt;
+  });
+
+  try {
+    await redis.del(`attempt:timer:${attemptId}`);
+  } catch (err) {
+    // Ignore redis error
+  }
+
+  return result;
+};
+
 export const AttemptService = {
   startAttempt,
+  submitProblem,
+  finalizeAttempt,
   sanitizeProblemForCandidate,
 };

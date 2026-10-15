@@ -8,6 +8,17 @@ const startAttemptValidationSchema = z.object({
   }),
 });
 
+const submitProblemValidationSchema = z.object({
+  body: z.object({
+    problemId: z.string().min(1, 'Problem ID is required'),
+    selectedOption: z.string().optional(),
+    writtenAnswer: z.string().optional(),
+    sourceCode: z.string().optional(),
+    language: z.string().optional(),
+  }),
+});
+
 export const AttemptValidation = {
   startAttemptValidationSchema,
+  submitProblemValidationSchema,
 };

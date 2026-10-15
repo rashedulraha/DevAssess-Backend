@@ -17,6 +17,36 @@ const startAttempt = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const submitProblem = catchAsync(async (req: Request, res: Response) => {
+  const attemptId = req.params.id as string;
+  const user = req.user!;
+
+  const result = await AttemptService.submitProblem(attemptId, user, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Problem submission recorded successfully',
+    data: result,
+  });
+});
+
+const finalizeAttempt = catchAsync(async (req: Request, res: Response) => {
+  const attemptId = req.params.id as string;
+  const user = req.user!;
+
+  const result = await AttemptService.finalizeAttempt(attemptId, user);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Assessment attempt finalized successfully',
+    data: result,
+  });
+});
+
 export const AttemptController = {
   startAttempt,
+  submitProblem,
+  finalizeAttempt,
 };
