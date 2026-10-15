@@ -19,3 +19,9 @@ Thumbs.db
 
 # Coverage
 coverage/
+
+# AI Agent & Assignment Internal Docs (Do not push to GitHub)
+.agent/
+.agents/
+AGENTS.md
+docs/
