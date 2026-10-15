@@ -1,11 +1,10 @@
 import { JwtPayload } from 'jsonwebtoken';
-
-export type UserRole = 'CANDIDATE' | 'RECRUITER' | 'ADMIN';
+import { Role } from '@prisma/client';
 
 export interface IAuthUser extends JwtPayload {
   userId: string;
   email: string;
-  role: UserRole;
+  role: Role;
 }
 
 declare global {
