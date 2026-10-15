@@ -1,0 +1,1330 @@
+{
+  "info": {
+    "_postman_id": "a937dc41-4882-4118-8f83-e18e88849b2c",
+    "name": "DevAssess API - Complete Suite",
+    "description": "DevAssess Developer Assessment & Technical Hiring Platform REST API. Built with Express 5, TypeScript, Prisma 7, PostgreSQL, Redis Cloud, Stripe, SSLCommerz, and isolated Node VM evaluation sandbox.\n\nAll endpoints adhere to `{ success: boolean, message: string, data: any }` and `{ success: false, message: string, errors: Array }`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Auth",
+      "description": "Authentication, registration, JWT issuance, Google OAuth, and session token rotation.",
+      "item": [
+        {
+          "name": "Register Recruiter",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Tanvir Ahmed\",\n  \"email\": \"tanvir@pathao.com\",\n  \"password\": \"Recruiter@123456\",\n  \"role\": \"RECRUITER\",\n  \"companyName\": \"Pathao Engineering\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registers a new recruiter and automatically provisions a company profile with 5 free credits."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Tanvir Ahmed\",\n  \"email\": \"tanvir@pathao.com\",\n  \"password\": \"Recruiter@123456\",\n  \"role\": \"RECRUITER\",\n  \"companyName\": \"Pathao Engineering\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\",\n  \"data\": {\n    \"id\": \"3c8f8b9e-64f3-421b-80df-4f271970bcf4\",\n    \"email\": \"tanvir@pathao.com\",\n    \"fullName\": \"Tanvir Ahmed\",\n    \"role\": \"RECRUITER\",\n    \"company\": {\n      \"id\": \"7b80a26d-2029-450f-90e9-74d3cf2d0ae7\",\n      \"name\": \"Pathao Engineering\",\n      \"slug\": \"pathao-engineering\",\n      \"assessmentCredits\": 5,\n      \"planTier\": \"FREE\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login Recruiter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.environment.set(\"recruiterToken\", jsonData.data.accessToken);",
+                  "    pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+                  "    pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{recruiterEmail}}\",\n  \"password\": \"{{recruiterPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates recruiter and sets `recruiterToken` and `accessToken` environment variables."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"User logged in successfully\",\n  \"data\": {\n    \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"user\": {\n      \"id\": \"3c8f8b9e-64f3-421b-80df-4f271970bcf4\",\n      \"email\": \"tanvir@pathao.com\",\n      \"fullName\": \"Tanvir Ahmed\",\n      \"role\": \"RECRUITER\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login Candidate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.environment.set(\"candidateToken\", jsonData.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{candidateEmail}}\",\n  \"password\": \"{{candidatePassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates candidate and sets `candidateToken` environment variable."
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.environment.set(\"adminToken\", jsonData.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates system administrator and sets `adminToken` environment variable."
+          }
+        },
+        {
+          "name": "Google Social Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"sample-google-oauth2-id-token\",\n  \"role\": \"CANDIDATE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google"
+              ]
+            },
+            "description": "OAuth2 login with Google ID token, verifies token with GCP auth library and signs JWT."
+          }
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            },
+            "description": "Rotates session refresh token and issues a new access token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Users & Company",
+      "description": "User profile management, bio/skills updates, and company branding.",
+      "item": [
+        {
+          "name": "Get Current Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "description": "Retrieves authenticated user profile with company information and role-specific stats."
+          }
+        },
+        {
+          "name": "Update Current Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Senior Engineering Lead specializing in high-throughput distributed systems and Go/TypeScript.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create or Update Company Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pathao Engineering\",\n  \"website\": \"https://pathao.com\",\n  \"description\": \"Leading super-app in Bangladesh transforming logistics, ride-hailing, and digital payments.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/companies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "companies"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Recruiter Company Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/companies/my-company",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "companies",
+                "my-company"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Problem Bank",
+      "description": "Problem Bank CRUD, test case authoring, pagination, filtering, and full-text keyword search.",
+      "item": [
+        {
+          "name": "Create Problem - CODING",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.id) {",
+                  "    pm.environment.set(\"problemId\", jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Two Sum Optimal Search\",\n  \"description\": \"Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\\n\\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\",\n  \"type\": \"CODING\",\n  \"difficulty\": \"EASY\",\n  \"points\": 20,\n  \"tags\": [\n    \"array\",\n    \"hash-table\",\n    \"algorithms\"\n  ],\n  \"starterCode\": \"function twoSum(nums, target) {\\n  // Write your optimal solution here\\n}\",\n  \"testCases\": [\n    {\n      \"input\": \"[2,7,11,15]\\n9\",\n      \"expectedOutput\": \"[0,1]\",\n      \"isHidden\": false,\n      \"points\": 10\n    },\n    {\n      \"input\": \"[3,2,4]\\n6\",\n      \"expectedOutput\": \"[1,2]\",\n      \"isHidden\": true,\n      \"points\": 10\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/problems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Problem - MCQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Node.js Event Loop Microtasks\",\n  \"description\": \"Which of the following queues executes first in Node.js event loop cycle when both have pending callbacks?\",\n  \"type\": \"MCQ\",\n  \"difficulty\": \"MEDIUM\",\n  \"points\": 10,\n  \"tags\": [\n    \"nodejs\",\n    \"javascript\",\n    \"concurrency\"\n  ],\n  \"options\": [\n    {\n      \"text\": \"process.nextTick() queue\",\n      \"isCorrect\": true\n    },\n    {\n      \"text\": \"Promise.then() microtask queue\",\n      \"isCorrect\": false\n    },\n    {\n      \"text\": \"setImmediate() check queue\",\n      \"isCorrect\": false\n    },\n    {\n      \"text\": \"setTimeout() timer queue\",\n      \"isCorrect\": false\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/problems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Problems (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems?type=CODING&difficulty=EASY&page=1&limit=10&sortBy=createdAt&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "CODING"
+                },
+                {
+                  "key": "difficulty",
+                  "value": "EASY"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Problems by Keyword & Tags",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/search?q=sum&tag=array&difficulty=EASY",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "sum"
+                },
+                {
+                  "key": "tag",
+                  "value": "array"
+                },
+                {
+                  "key": "difficulty",
+                  "value": "EASY"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Problem Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/{{problemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "{{problemId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Problem",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Two Sum Optimal Search (Revised)\",\n  \"points\": 25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/problems/{{problemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "{{problemId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Soft Delete Problem",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/{{problemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "{{problemId}}"
+              ]
+            },
+            "description": "Marks `deletedAt = now()` to safely preserve historical candidate submissions and scores."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Assessments & Invitations",
+      "description": "Assessment creation, problem linking, state transitions, and transactional candidate invitations.",
+      "item": [
+        {
+          "name": "Create Assessment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.id) {",
+                  "    pm.environment.set(\"assessmentId\", jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Full Stack Engineer Technical Hiring Challenge 2026\",\n  \"description\": \"Technical hiring assessment evaluating algorithms, data structures, and backend systems knowledge.\",\n  \"durationMinutes\": 60,\n  \"passingScore\": 60,\n  \"maxTabSwitches\": 3,\n  \"problems\": [\n    {\n      \"problemId\": \"{{problemId}}\",\n      \"orderIndex\": 0,\n      \"customPoints\": 30\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assessments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assessments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Assessments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments?status=PUBLISHED&page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assessments"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PUBLISHED"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Assessment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assessments",
+                "{{assessmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Publish Assessment (Status Transition)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assessments",
+                "{{assessmentId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invite Candidate (Credit Deduction)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.invitations && jsonData.data.invitations.length > 0) {",
+                  "    pm.environment.set(\"invitationToken\", jsonData.data.invitations[0].token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"candidates\": [\n    {\n      \"email\": \"nusrat@candidate.dev\",\n      \"candidateName\": \"Nusrat Jahan\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assessments",
+                "{{assessmentId}}",
+                "invite"
+              ]
+            },
+            "description": "Runs in a Prisma transaction: verifies company credit balance, deducts 1 credit per candidate, creates invitation tokens, and dispatches invitation email."
+          }
+        },
+        {
+          "name": "Candidate Get My Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invitations/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "my"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Soft Delete Assessment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assessments",
+                "{{assessmentId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Candidate Attempts & Submissions",
+      "description": "Timed assessment attempt initiation, Redis timer synchronization, anti-cheat telemetry, and auto-evaluation.",
+      "item": [
+        {
+          "name": "Start Timed Attempt (Sanitized Questions)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.attempt) {",
+                  "    pm.environment.set(\"attemptId\", jsonData.data.attempt.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invitationToken\": \"{{invitationToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attempts/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attempts",
+                "start"
+              ]
+            },
+            "description": "Calculates expiresAt = startedAt + durationMinutes, sets Redis TTL, marks invitation as ACCEPTED, and returns sanitized problem set (hiding MCQ answers & secret test cases)."
+          }
+        },
+        {
+          "name": "Submit Coding Problem Solution",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.id) {",
+                  "    pm.environment.set(\"submissionId\", jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"problemId\": \"{{problemId}}\",\n  \"codeAnswer\": \"function twoSum(nums, target) {\\n  const map = new Map();\\n  for (let i = 0; i < nums.length; i++) {\\n    const complement = target - nums[i];\\n    if (map.has(complement)) {\\n      return [map.get(complement), i];\\n    }\\n    map.set(nums[i], i);\\n  }\\n  return [];\\n}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attempts/{{attemptId}}/submissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attempts",
+                "{{attemptId}}",
+                "submissions"
+              ]
+            },
+            "description": "Executes candidate code in an isolated Node.js vm sandbox with memory & execution timeout limits. Returns passed test cases and calculated score."
+          }
+        },
+        {
+          "name": "Report Anti-Cheat Telemetry Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventType\": \"TAB_SWITCH\",\n  \"metadata\": {\n    \"blurTimestamp\": \"2026-10-15T23:51:06.780Z\",\n    \"userAgent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)\",\n    \"windowFocus\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attempts/{{attemptId}}/anti-cheat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attempts",
+                "{{attemptId}}",
+                "anti-cheat"
+              ]
+            },
+            "description": "Logs telemetry event and increments tabSwitchCount. Automatically sets attempt.isFlagged = true if limit exceeded."
+          }
+        },
+        {
+          "name": "Finalize Assessment Attempt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attempts/{{attemptId}}/finalize",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attempts",
+                "{{attemptId}}",
+                "finalize"
+              ]
+            },
+            "description": "Validates attempt is not expired, calculates overall score, compares against passingScore, and marks attempt as COMPLETED."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Evaluation & Reports",
+      "description": "Recruiter manual grading for written answers and comprehensive cached assessment performance analytics.",
+      "item": [
+        {
+          "name": "Recruiter Manual Evaluation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pointsAwarded\": 28,\n  \"feedback\": \"Excellent optimal O(n) solution using hash map lookup. Clean code with edge case handling.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/submissions/{{submissionId}}/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissions",
+                "{{submissionId}}",
+                "evaluate"
+              ]
+            },
+            "description": "Recalculates total attempt score and updates pass/fail status inside a Prisma transaction."
+          }
+        },
+        {
+          "name": "Get Assessment Performance Report (Cached in Redis)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assessments",
+                "{{assessmentId}}",
+                "report"
+              ]
+            },
+            "description": "Returns candidate leaderboard, pass rate, average score, problem accuracy distribution, and anti-cheat violation metrics."
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Payments",
+      "description": "Credit checkout session initiation via Stripe / SSLCommerz, test checkout, and idempotent webhook processing.",
+      "item": [
+        {
+          "name": "Initiate Credit Bundle Checkout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    if (jsonData.data.paymentId) pm.environment.set(\"paymentId\", jsonData.data.paymentId);",
+                  "    if (jsonData.data.transactionId) pm.environment.set(\"transactionId\", jsonData.data.transactionId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bundle\": \"PRO_100\",\n  \"gateway\": \"STRIPE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/initiate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "initiate"
+              ]
+            },
+            "description": "Creates a PENDING payment record and returns Stripe / SSLCommerz checkoutUrl."
+          }
+        },
+        {
+          "name": "Instant Test Checkout (Development Mode)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionId\": \"{{transactionId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/test-checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "test-checkout"
+              ]
+            },
+            "description": "Instantly completes the checkout transaction, increments company credits, updates tier, and logs audit record."
+          }
+        },
+        {
+          "name": "Payment Webhook Callback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"checkout.session.completed\",\n  \"tran_id\": \"{{transactionId}}\",\n  \"status\": \"VALID\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "webhook"
+              ]
+            },
+            "description": "Idempotent webhook handler verifying gateway signature and updating database inside a transaction."
+          }
+        },
+        {
+          "name": "Get Payment Details & Receipt",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{recruiterToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "{{paymentId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Admin & Audit Logs",
+      "description": "System-wide user administration, role assignment, platform telemetry KPIs, and immutable audit logs.",
+      "item": [
+        {
+          "name": "Admin List Users (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?role=RECRUITER&isActive=true&page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "RECRUITER"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Update User Role & Active Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"RECRUITER\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "{{userId}}",
+                "role"
+              ]
+            },
+            "description": "Updates role or active status and records an immutable AuditLog entry."
+          }
+        },
+        {
+          "name": "Admin Platform Dashboard Stats (Cached in Redis)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "dashboard-stats"
+              ]
+            },
+            "description": "Aggregates platform KPIs: users by role, completed payment revenue in USD/BDT, active assessments, and total candidate attempts."
+          }
+        },
+        {
+          "name": "Admin Get System Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/audit-logs?entityType=Payment&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "entityType",
+                  "value": "Payment"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Filterable, paginated audit trail of all sensitive operations performed across DevAssess."
+          }
+        }
+      ]
+    }
+  ]
+}

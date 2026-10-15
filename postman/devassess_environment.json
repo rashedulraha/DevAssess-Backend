@@ -1,0 +1,129 @@
+{
+  "id": "e838b90a-974a-4d22-bf85-a7b2cb1e3df9",
+  "name": "DevAssess - Local & Production Environment",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "prodUrl",
+      "value": "https://devassess-backend.onrender.com/api/v1",
+      "type": "default",
+      "enabled": false
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@devassess.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin@123456",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "recruiterEmail",
+      "value": "tanvir@pathao.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "recruiterPassword",
+      "value": "Recruiter@123456",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "candidateEmail",
+      "value": "nusrat@candidate.dev",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "candidatePassword",
+      "value": "Candidate@123456",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "recruiterToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "candidateToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "problemId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "assessmentId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "invitationToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "attemptId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "submissionId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "transactionId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2026-10-16T05:50:00.000Z",
+  "_postman_exported_using": "Postman/11.0.0"
+}
