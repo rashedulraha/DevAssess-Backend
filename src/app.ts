@@ -3,17 +3,35 @@ import cors from 'cors';
 import express, { Application, Request, Response } from 'express';
 import helmet from 'helmet';
 
+import config from './app/config';
 import { globalErrorHandler } from './app/middlewares/globalErrorHandler';
 import { notFound } from './app/middlewares/notFound';
+import { apiRateLimiter } from './app/middlewares/rateLimiter';
 import router from './app/routes';
 
 const app: Application = express();
 
 // Security and utility middlewares
 app.use(helmet());
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://devassess.com',
+  ...(config.frontendPublicUrl ? [config.frontendPublicUrl] : []),
+  ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
+];
+
 app.use(
   cors({
-    origin: ['http://localhost:3000', 'https://devassess.com'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, Postman, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || config.env === 'development') {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS policy: This origin is not allowed'));
+    },
     credentials: true,
   }),
 );
@@ -28,6 +46,7 @@ app.get('/', (_req: Request, res: Response) => {
     message: 'Welcome to DevAssess API',
     data: {
       version: '1.0.0',
+      status: 'healthy',
       docs: '/api/v1/docs',
     },
   });
@@ -46,8 +65,8 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
   });
 });
 
-// Application v1 routes
-app.use('/api/v1', router);
+// Application v1 routes with rate limiting
+app.use('/api/v1', apiRateLimiter, router);
 
 // Error handling middlewares
 app.use(notFound);
