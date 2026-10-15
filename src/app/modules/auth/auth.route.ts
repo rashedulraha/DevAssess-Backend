@@ -1,9 +1,13 @@
 import { Router } from 'express';
+import { authRateLimiter } from '../../middlewares/rateLimiter';
 import { validateRequest } from '../../middlewares/validateRequest';
 import { AuthController } from './auth.controller';
 import { AuthValidation } from './auth.validation';
 
 const router = Router();
+
+// Rate limiter for auth endpoints
+router.use(authRateLimiter);
 
 router.post(
   '/register',
@@ -15,6 +19,12 @@ router.post(
   '/login',
   validateRequest(AuthValidation.loginValidationSchema),
   AuthController.login,
+);
+
+router.post(
+  '/google',
+  validateRequest(AuthValidation.googleLoginValidationSchema),
+  AuthController.googleLogin,
 );
 
 router.post(

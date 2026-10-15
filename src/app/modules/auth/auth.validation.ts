@@ -39,8 +39,16 @@ const refreshTokenValidationSchema = z.object({
     .optional(),
 });
 
+const googleLoginValidationSchema = z.object({
+  body: z.object({
+    idToken: z.string().min(1, 'Google ID token is required'),
+    role: z.enum(['CANDIDATE', 'RECRUITER']).optional(),
+  }),
+});
+
 export const AuthValidation = {
   registerValidationSchema,
   loginValidationSchema,
   refreshTokenValidationSchema,
+  googleLoginValidationSchema,
 };

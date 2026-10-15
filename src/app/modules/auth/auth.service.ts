@@ -3,6 +3,7 @@ import config from '../../config';
 import { AppError } from '../../errors/AppError';
 import { prisma } from '../../shared/prisma';
 import {
+  IGoogleLoginUser,
   ILoginResponse,
   ILoginUser,
   IRefreshTokenResponse,
@@ -164,8 +165,129 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
   };
 };
 
+const googleLogin = async (payload: IGoogleLoginUser): Promise<ILoginResponse> => {
+  const { OAuth2Client } = await import('google-auth-library');
+  const googleClient = new OAuth2Client(config.googleClientId);
+
+  let googleEmail: string | undefined;
+  let googleName: string | undefined;
+  let googleSub: string | undefined;
+  let googlePicture: string | undefined;
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: payload.idToken,
+      audience: config.googleClientId || undefined,
+    });
+    const ticketPayload = ticket.getPayload();
+    googleEmail = ticketPayload?.email;
+    googleName = ticketPayload?.name;
+    googleSub = ticketPayload?.sub;
+    googlePicture = ticketPayload?.picture;
+  } catch {
+    throw new AppError(400, 'Invalid Google ID token');
+  }
+
+  if (!googleEmail) {
+    throw new AppError(400, 'Unable to retrieve email from Google Account');
+  }
+
+  let user = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: googleEmail }, { googleId: googleSub }],
+    },
+    include: { company: true },
+  });
+
+  if (user) {
+    if (user.deletedAt) {
+      throw new AppError(404, 'User account was deleted');
+    }
+    if (!user.isActive) {
+      throw new AppError(403, 'User account is deactivated');
+    }
+
+    if (!user.googleId || !user.avatarUrl) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId: user.googleId || googleSub,
+          avatarUrl: user.avatarUrl || googlePicture,
+        },
+        include: { company: true },
+      });
+    }
+  } else {
+    const userRole = (payload.role as Role) || Role.CANDIDATE;
+    const userName = googleName || 'Google User';
+
+    user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email: googleEmail as string,
+          fullName: userName,
+          googleId: googleSub,
+          avatarUrl: googlePicture,
+          role: userRole,
+        },
+      });
+
+      let company = null;
+      if (userRole === Role.RECRUITER) {
+        const companyName = `${userName}'s Organization`;
+        company = await tx.company.create({
+          data: {
+            ownerId: newUser.id,
+            name: companyName,
+            slug: generateSlug(companyName),
+            assessmentCredits: 5,
+            planTier: 'FREE',
+          },
+        });
+      }
+
+      return {
+        ...newUser,
+        company,
+      };
+    });
+  }
+
+  const jwtPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = createToken(
+    jwtPayload,
+    config.jwt.accessSecret as string,
+    config.jwt.accessExpiresIn as string,
+  );
+
+  const refreshToken = createToken(
+    jwtPayload,
+    config.jwt.refreshSecret as string,
+    config.jwt.refreshExpiresIn as string,
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+      companyId: user.company?.id || null,
+    },
+  };
+};
+
 export const AuthService = {
   register,
   login,
   refreshToken,
+  googleLogin,
 };

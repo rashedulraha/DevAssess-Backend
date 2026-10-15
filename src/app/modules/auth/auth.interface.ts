@@ -13,6 +13,11 @@ export interface ILoginUser {
   password: string;
 }
 
+export interface IGoogleLoginUser {
+  idToken: string;
+  role?: 'CANDIDATE' | 'RECRUITER';
+}
+
 export interface IAuthResponseUser {
   id: string;
   email: string;
