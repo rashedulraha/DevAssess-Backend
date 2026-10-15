@@ -5,6 +5,7 @@ import helmet from 'helmet';
 
 import { globalErrorHandler } from './app/middlewares/globalErrorHandler';
 import { notFound } from './app/middlewares/notFound';
+import router from './app/routes';
 
 const app: Application = express();
 
@@ -45,8 +46,11 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
   });
 });
 
-// Global error handler & 404 handler
-app.use(globalErrorHandler);
+// Application v1 routes
+app.use('/api/v1', router);
+
+// Error handling middlewares
 app.use(notFound);
+app.use(globalErrorHandler);
 
 export default app;
