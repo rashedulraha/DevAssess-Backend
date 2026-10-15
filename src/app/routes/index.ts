@@ -6,6 +6,7 @@ import { ProblemRoutes } from '../modules/problem/problem.route';
 import { UserRoutes } from '../modules/user/user.route';
 import { AttemptRoutes } from '../modules/attempt/attempt.route';
 import { InvitationRoutes } from '../modules/invitation/invitation.route';
+import { SubmissionRoutes } from '../modules/submission/submission.route';
 
 const router = Router();
 
@@ -37,6 +38,10 @@ const moduleRoutes = [
   {
     path: '/attempts',
     route: AttemptRoutes,
+  },
+  {
+    path: '/submissions',
+    route: SubmissionRoutes,
   },
 ];
 

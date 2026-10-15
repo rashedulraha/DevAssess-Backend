@@ -55,6 +55,12 @@ router.get(
   InvitationController.getAssessmentInvitations,
 );
 
+router.get(
+  '/:id/report',
+  auth(Role.RECRUITER, Role.ADMIN),
+  AssessmentController.getAssessmentReport,
+);
+
 router.delete(
   '/:id',
   auth(Role.RECRUITER, Role.ADMIN),

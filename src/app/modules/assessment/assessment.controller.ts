@@ -90,6 +90,20 @@ const deleteAssessment = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAssessmentReport = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const user = req.user!;
+
+  const result = await AssessmentService.getAssessmentReport(id, user);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Assessment performance report retrieved successfully',
+    data: result,
+  });
+});
+
 export const AssessmentController = {
   createAssessment,
   getAllAssessments,
@@ -97,4 +111,5 @@ export const AssessmentController = {
   updateAssessment,
   updateAssessmentStatus,
   deleteAssessment,
+  getAssessmentReport,
 };

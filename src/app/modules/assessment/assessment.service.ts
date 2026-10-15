@@ -3,6 +3,7 @@ import { AppError } from '../../errors/AppError';
 import { IAuthUser } from '../../interfaces';
 import { calculatePagination } from '../../shared/paginationHelper';
 import { prisma } from '../../shared/prisma';
+import { redis } from '../../shared/redis';
 import { assessmentSearchableFields } from './assessment.constant';
 import {
   IAssessmentFilterRequest,
@@ -380,6 +381,136 @@ const deleteAssessment = async (id: string, user: IAuthUser) => {
   return deletedAssessment;
 };
 
+const getAssessmentReport = async (id: string, user: IAuthUser) => {
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+    },
+    include: {
+      company: true,
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(404, 'Assessment not found.');
+  }
+
+  if (user.role === Role.RECRUITER) {
+    const company = await prisma.company.findUnique({
+      where: { ownerId: user.userId },
+    });
+    if (!company || assessment.companyId !== company.id) {
+      throw new AppError(403, 'Forbidden: You do not have permission to view this report.');
+    }
+  }
+
+  const cacheKey = `report:assessment:${id}`;
+  try {
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+  } catch (err) {
+    // Ignore Redis read error
+  }
+
+  const totalInvited = await prisma.candidateInvitation.count({
+    where: { assessmentId: id },
+  });
+
+  const attempts = await prisma.assessmentAttempt.findMany({
+    where: { assessmentId: id },
+    include: {
+      candidate: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+      antiCheatLogs: true,
+    },
+    orderBy: { totalScore: 'desc' },
+  });
+
+  const completedAttempts = attempts.filter((a) =>
+    ['SUBMITTED', 'EVALUATED', 'FLAGGED'].includes(a.status),
+  );
+  const passedAttempts = completedAttempts.filter((a) => a.isPassed);
+
+  const totalScoreSum = completedAttempts.reduce((acc, a) => acc + a.percentageScore, 0);
+  const averageScore =
+    completedAttempts.length > 0
+      ? Math.round((totalScoreSum / completedAttempts.length) * 100) / 100
+      : 0;
+
+  const passRate =
+    completedAttempts.length > 0
+      ? Math.round((passedAttempts.length / completedAttempts.length) * 10000) / 100
+      : 0;
+
+  const scores = completedAttempts.map((a) => a.totalScore);
+  const highestScore = scores.length > 0 ? Math.max(...scores) : 0;
+  const lowestScore = scores.length > 0 ? Math.min(...scores) : 0;
+
+  const flaggedAttempts = attempts.filter((a) => a.status === 'FLAGGED');
+  const allLogs = attempts.flatMap((a) => a.antiCheatLogs);
+  const eventBreakdown: Record<string, number> = {};
+  for (const log of allLogs) {
+    eventBreakdown[log.eventType] = (eventBreakdown[log.eventType] || 0) + 1;
+  }
+
+  const leaderboard = attempts.map((a, index) => ({
+    rank: index + 1,
+    attemptId: a.id,
+    candidate: a.candidate,
+    status: a.status,
+    totalScore: a.totalScore,
+    percentageScore: a.percentageScore,
+    isPassed: a.isPassed,
+    tabSwitchCount: a.tabSwitchCount,
+    startedAt: a.startedAt,
+    submittedAt: a.submittedAt,
+  }));
+
+  const report = {
+    assessment: {
+      id: assessment.id,
+      title: assessment.title,
+      durationMinutes: assessment.durationMinutes,
+      totalPoints: assessment.totalPoints,
+      passingScore: assessment.passingScore,
+      status: assessment.status,
+    },
+    metrics: {
+      totalInvited,
+      totalAttempts: attempts.length,
+      completedAttempts: completedAttempts.length,
+      passedAttempts: passedAttempts.length,
+      passRate,
+      averageScore,
+      highestScore,
+      lowestScore,
+    },
+    antiCheatSummary: {
+      totalFlaggedAttempts: flaggedAttempts.length,
+      totalViolations: allLogs.length,
+      eventBreakdown,
+    },
+    leaderboard,
+  };
+
+  try {
+    await redis.set(cacheKey, JSON.stringify(report), 'EX', 300);
+  } catch (err) {
+    // Ignore Redis write error
+  }
+
+  return report;
+};
+
 export const AssessmentService = {
   createAssessment,
   getAllAssessments,
@@ -387,4 +518,5 @@ export const AssessmentService = {
   updateAssessment,
   updateAssessmentStatus,
   deleteAssessment,
+  getAssessmentReport,
 };
