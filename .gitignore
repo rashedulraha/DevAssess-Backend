@@ -28,3 +28,4 @@ coverage/
 skills-lock.json
 AGENTS.md
 docs/
+.vercel
