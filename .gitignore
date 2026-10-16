@@ -23,5 +23,8 @@ coverage/
 # AI Agent & Assignment Internal Docs (Do not push to GitHub)
 .agent/
 .agents/
+.claude/
+.windsurf/
+skills-lock.json
 AGENTS.md
 docs/

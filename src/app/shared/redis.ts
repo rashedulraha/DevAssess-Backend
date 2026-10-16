@@ -1,7 +1,10 @@
 import Redis from 'ioredis';
 import config from '../config';
 
-export const redis = new Redis(config.redisUrl as string, {
+const rawRedisUrl = (config.redisUrl as string) || '';
+const cleanRedisUrl = rawRedisUrl.replace(/^redis-cli\s+-u\s+/, '').trim();
+
+export const redis = new Redis(cleanRedisUrl, {
   maxRetriesPerRequest: 2,
   enableOfflineQueue: false,
   lazyConnect: true,
