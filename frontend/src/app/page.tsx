@@ -192,10 +192,28 @@ export default function Home() {
     try {
       if (authMode === 'login') {
         const res = await authApi.login({ email: authEmail, password: authPassword });
-        localStorage.setItem('token', res.data.accessToken);
-        setCurrentUser(res.data.user);
-        notify(`Welcome, ${res.data.user.fullName}!`);
-        setShowAuthModal(false);
+        const token = res.data?.accessToken;
+        const user = res.data?.user;
+        if (token && user) {
+          localStorage.setItem('token', token);
+          setCurrentUser(user);
+          notify(`Welcome back, ${user.fullName}!`, 'success');
+          setShowAuthModal(false);
+
+          // Role-based dashboard redirect
+          if (user.role === 'RECRUITER') {
+            setActiveTab('recruiter');
+          } else if (user.role === 'CANDIDATE') {
+            setActiveTab('candidate');
+          } else if (user.role === 'ADMIN') {
+            setActiveTab('admin');
+          }
+
+          // Clear form inputs
+          setAuthEmail('');
+          setAuthPassword('');
+          refreshTabData();
+        }
       } else {
         const res = await authApi.register({
           fullName: authFullName,
@@ -493,19 +511,19 @@ export default function Home() {
       )}
 
       {/* Navigation Header (Apple Frosted Glass) */}
-      <header className="sticky top-0 z-40 bg-[#090a0f]/75 backdrop-blur-2xl border-b border-white/[0.07]">
+      <header className="sticky top-0 z-40 bg-[#090a0f]/80 backdrop-blur-2xl border-b border-white/[0.08] shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo & Platform Info */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 border border-white/10">
-              <Code className="text-white" size={18} />
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/25 border border-white/15 ring-1 ring-white/10 transition hover:scale-105">
+              <Code className="text-white" size={19} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-base tracking-tight text-white">
+                <span className="font-bold text-base tracking-tight text-white">
                   DevAssess
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium tracking-wide uppercase bg-white/[0.05] text-slate-300 border border-white/[0.08]">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold tracking-wide uppercase bg-white/[0.06] text-slate-300 border border-white/[0.08]">
                   v1.0 Pro
                 </span>
               </div>
@@ -515,52 +533,84 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Role Controls & Live Status */}
+          {/* Controls & Live Status */}
           <div className="flex items-center gap-3">
-            {/* Backend Health Status */}
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs text-slate-300">
-              <div
-                className={`w-1.5 h-1.5 rounded-full ${
-                  backendHealth === 'UP' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-rose-500'
-                }`}
-              />
-              <span className="text-[11px] font-mono tracking-wider">
+            {/* Backend Health Status Badge */}
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.07] text-xs">
+              <span className="relative flex h-2 w-2">
+                {backendHealth === 'UP' && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                )}
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 ${
+                    backendHealth === 'UP' ? 'bg-emerald-400' : 'bg-rose-500'
+                  }`}
+                />
+              </span>
+              <span className="text-[11px] font-mono font-medium tracking-wider text-slate-300">
                 {backendHealth === 'UP' ? 'ONLINE' : 'CONNECTING'}
               </span>
             </div>
 
-            {/* Quick Demo Login Switcher */}
-            <div className="hidden lg:flex items-center gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
+            {/* Quick Demo Switcher */}
+            <div className="hidden lg:flex items-center gap-1 bg-white/[0.03] p-1 rounded-2xl border border-white/[0.07] backdrop-blur-xl">
+              <span className="text-[10px] uppercase font-bold text-slate-500 px-2 tracking-wider">Demo:</span>
               <button
                 onClick={() => handleQuickLogin('RECRUITER')}
                 disabled={loading}
-                className="px-2.5 py-1 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
+                className={`px-3 py-1 text-xs font-medium rounded-xl transition ${
+                  currentUser?.role === 'RECRUITER'
+                    ? 'bg-indigo-600/30 text-indigo-200 border border-indigo-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                }`}
               >
                 Recruiter
               </button>
               <button
                 onClick={() => handleQuickLogin('CANDIDATE')}
                 disabled={loading}
-                className="px-2.5 py-1 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
+                className={`px-3 py-1 text-xs font-medium rounded-xl transition ${
+                  currentUser?.role === 'CANDIDATE'
+                    ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                }`}
               >
                 Candidate
               </button>
               <button
                 onClick={() => handleQuickLogin('ADMIN')}
                 disabled={loading}
-                className="px-2.5 py-1 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
+                className={`px-3 py-1 text-xs font-medium rounded-xl transition ${
+                  currentUser?.role === 'ADMIN'
+                    ? 'bg-purple-600/30 text-purple-200 border border-purple-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                }`}
               >
                 Admin
               </button>
             </div>
 
-            {/* User Session Actions */}
+            {/* User Session Chip / Sign In */}
             {currentUser ? (
-              <div className="flex items-center gap-2 pl-2 border-l border-white/[0.08]">
-                <div className="text-right hidden sm:block">
-                  <div className="text-xs font-medium text-white">{currentUser.fullName}</div>
-                  <div className="text-[10px] text-indigo-400 font-mono tracking-wider uppercase">
-                    {currentUser.role}
+              <div className="flex items-center gap-3 pl-3 border-l border-white/[0.08]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500/30 to-purple-500/30 border border-white/15 flex items-center justify-center text-xs font-bold text-white shadow-inner">
+                    {currentUser.fullName
+                      ? currentUser.fullName
+                          .split(' ')
+                          .map((n: string) => n[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase()
+                      : 'U'}
+                  </div>
+                  <div className="text-left hidden sm:block">
+                    <div className="text-xs font-semibold text-white leading-tight">
+                      {currentUser.fullName}
+                    </div>
+                    <div className="text-[10px] font-mono tracking-wider uppercase text-indigo-400">
+                      {currentUser.role}
+                    </div>
                   </div>
                 </div>
                 <button
@@ -569,8 +619,8 @@ export default function Home() {
                     setCurrentUser(null);
                     notify('Signed out successfully');
                   }}
-                  className="p-2 text-slate-400 hover:text-white rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] transition"
-                  title="Logout"
+                  className="p-2 text-slate-400 hover:text-rose-400 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.07] transition"
+                  title="Sign Out"
                 >
                   <LogOut size={15} />
                 </button>
@@ -581,7 +631,7 @@ export default function Home() {
                   setAuthMode('login');
                   setShowAuthModal(true);
                 }}
-                className="px-4 py-1.5 rounded-xl text-xs font-medium bg-white text-black hover:bg-slate-200 transition shadow-sm"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-black hover:bg-slate-200 transition-all shadow-sm active:scale-95"
               >
                 Sign In
               </button>
