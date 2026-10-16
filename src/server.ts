@@ -46,4 +46,9 @@ async function bootstrap() {
   });
 }
 
-bootstrap();
+// Only start standalone server when running locally or on VPS (not in Vercel serverless)
+if (!process.env.VERCEL) {
+  bootstrap();
+}
+
+export default app;

@@ -9,13 +9,9 @@ export default defineConfig({
   bundle: true,
   splitting: false,
   sourcemap: true,
-  noExternal: [
-    /^((?!@prisma\/client).)*$/,
+  external: [
+    "@prisma/client",
+    "bcrypt",
+    "pg",
   ],
-  banner: {
-    js: `
-      // CommonJS shim for Node.js modules compatibility
-      var require = require || ((m) => { throw new Error('Cannot require ' + m); });
-    `,
-  },
 });
